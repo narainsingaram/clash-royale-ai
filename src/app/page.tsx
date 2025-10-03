@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Tilt from 'react-parallax-tilt';
 
 interface Card {
   id: string;
@@ -20,6 +21,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [addingCard, setAddingCard] = useState<Card | null>(null);
+  const [analyzing, setAnalyzing] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchCards = async () => {
@@ -45,9 +47,23 @@ export default function Home() {
     setDeck(deck.filter(c => c.id !== card.id));
   };
 
-  const analyzeDeck = () => {
-    // AI analysis logic will go here
-    setAnalysis('Deck analysis coming soon!');
+  const analyzeDeck = async () => {
+    setAnalyzing(true);
+    try {
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ deck }),
+      });
+      const data = await response.json();
+      setAnalysis(data.analysis);
+    } catch (error) {
+      setAnalysis('Failed to analyze deck. Please try again.');
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const generateRandomDeck = () => {
@@ -116,7 +132,9 @@ export default function Home() {
           <div className="grid grid-cols-4 md:grid-cols-8 gap-4 bg-gray-200 p-4 rounded-lg">
             {deck.map(card => (
               <div key={card.id} onClick={() => handleDeckCardClick(card)} className="cursor-pointer text-center">
-                <img src={card.iconUrls.medium} alt={card.name} className="w-full" />
+                <Tilt glareEnable={true} glareMaxOpacity={0.8} glareColor="#ffffff" glarePosition="bottom" tiltMaxAngleX={10} tiltMaxAngleY={10}>
+                  <img src={card.iconUrls.medium} alt={card.name} className="w-full" />
+                </Tilt>
                 <p className="text-sm font-semibold">{card.name}</p>
               </div>
             ))}
@@ -127,10 +145,10 @@ export default function Home() {
           <div className="text-center mt-4">
             <button
               onClick={analyzeDeck}
-              disabled={deck.length !== 8}
+              disabled={deck.length !== 8 || analyzing}
               className="bg-blue-500 text-white font-bold py-2 px-4 rounded disabled:bg-gray-400 mr-2"
             >
-              Analyze Deck
+              {analyzing ? 'Analyzing...' : 'Analyze Deck'}
             </button>
             <button
               onClick={generateRandomDeck}
@@ -144,7 +162,7 @@ export default function Home() {
         {analysis && (
           <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-8" role="alert">
             <strong className="font-bold">AI Analysis:</strong>
-            <span className="block sm:inline"> {analysis}</span>
+            <div className="prose" dangerouslySetInnerHTML={{ __html: analysis }} />
           </div>
         )}
 
@@ -162,7 +180,9 @@ export default function Home() {
           <div className="grid grid-cols-4 md:grid-cols-8 lg:grid-cols-12 gap-4">
             {filteredCards.map(card => (
               <div key={card.id} className={`relative card-container ${addingCard?.id === card.id ? 'card-add-animation' : ''}`}>
-                <img src={card.iconUrls.medium} alt={card.name} className="w-full" />
+                <Tilt glareEnable={true} glareMaxOpacity={0.8} glareColor="#ffffff" glarePosition="bottom" tiltMaxAngleX={10} tiltMaxAngleY={10}>
+                  <img src={card.iconUrls.medium} alt={card.name} className="w-full" />
+                </Tilt>
                 <p className="text-sm font-semibold text-center">{card.name}</p>
                 <div
                   className="info-icon absolute top-0 right-0 bg-gray-800 text-white rounded-full p-1 cursor-pointer"
@@ -192,7 +212,9 @@ export default function Home() {
                 </button>
               </div>
               <div className="text-center">
-                <img src={selectedCard.iconUrls.medium} alt={selectedCard.name} className="w-32 mx-auto mb-4" />
+                <Tilt glareEnable={true} glareMaxOpacity={0.8} glareColor="#ffffff" glarePosition="bottom" tiltMaxAngleX={10} tiltMaxAngleY={10}>
+                  <img src={selectedCard.iconUrls.medium} alt={selectedCard.name} className="w-32 mx-auto mb-4" />
+                </Tilt>
                 <p className="text-lg"><span className="font-semibold">Elixir Cost:</span> {selectedCard.elixirCost}</p>
                 <p className="text-lg"><span className="font-semibold">Rarity:</span> {selectedCard.rarity}</p>
                 <p className="text-lg"><span className="font-semibold">Max Level:</span> {selectedCard.maxLevel}</p>

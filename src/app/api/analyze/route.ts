@@ -1,54 +1,42 @@
 
 import { NextResponse } from 'next/server';
+import axios from 'axios';
 
-const WIN_CONDITIONS = ['Hog Rider', 'Golem', 'Royal Giant', 'Goblin Giant', 'Ram Rider', 'Lava Hound', 'Balloon', 'X-Bow', 'Mortar', 'Graveyard', 'Goblin Barrel', 'Miner', 'Three Musketeers', 'Elixir Golem', 'Battle Ram', 'Wall Breakers', 'Royal Hogs'];
-const BIG_SPELLS = ['Fireball', 'Poison', 'Lightning', 'Rocket', 'Freeze'];
-const SMALL_SPELLS = ['The Log', 'Zap', 'Snowball', 'Arrows', 'Tornado'];
+export async function POST(req: Request) {
+  try {
+    const { deck } = await req.json();
 
-interface Card {
-  name: string;
-  elixir: number;
-}
+    const prompt = `
+      You are a Clash Royale expert. Analyze the following deck and provide feedback.
 
-export async function POST(request: Request) {
-  const { deck } = await request.json();
+      Deck:
+      ${deck.map((card: any) => `- ${card.name}`).join('\n')}
 
-  if (!deck || deck.length !== 8) {
-    return NextResponse.json({ error: 'Invalid deck' }, { status: 400 });
+      Provide the following analysis in markdown format:
+      1.  **Strengths:** What are the main strengths of this deck?
+      2.  **Weaknesses:** What are the main weaknesses of this deck?
+      3.  **Synergies:** What are the key synergies between the cards in this deck?
+      4.  **Suggested Improvements:** Suggest 1-2 card replacements to improve the deck and explain why.
+    `;
+
+    const response = await axios.post(
+      'https://openrouter.ai/api/v1/chat/completions',
+      {
+        model: 'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',
+        messages: [{ role: 'user', content: prompt }],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        },
+      }
+    );
+
+    const analysis = response.data.choices[0].message.content;
+
+    return NextResponse.json({ analysis });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Failed to analyze deck' }, { status: 500 });
   }
-
-  let analysis = '';
-
-  // Average Elixir Cost
-  const totalElixir = deck.reduce((sum: number, card: Card) => sum + card.elixir, 0);
-  const avgElixir = totalElixir / 8;
-  analysis += `Average Elixir Cost: ${avgElixir.toFixed(2)}. `;
-  if (avgElixir < 3.5) {
-    analysis += 'This is a fast cycle deck. ';
-  } else if (avgElixir > 4.5) {
-    analysis += 'This is a heavy beatdown deck. ';
-  } else {
-    analysis += 'This deck has a balanced elixir cost. ';
-  }
-
-  // Win Condition
-  const winConditionsInDeck = deck.filter((card: Card) => WIN_CONDITIONS.includes(card.name));
-  if (winConditionsInDeck.length === 0) {
-    analysis += 'Warning: This deck lacks a clear win condition. ';
-  } else {
-    analysis += `Win condition(s): ${winConditionsInDeck.map(c => c.name).join(', ')}. `;
-  }
-
-  // Spells
-  const bigSpellsInDeck = deck.filter((card: Card) => BIG_SPELLS.includes(card.name));
-  const smallSpellsInDeck = deck.filter((card: Card) => SMALL_SPELLS.includes(card.name));
-
-  if (bigSpellsInDeck.length === 0) {
-    analysis += 'Consider adding a big spell for more control. ';
-  }
-  if (smallSpellsInDeck.length === 0) {
-    analysis += 'Consider adding a small spell for versatile defense. ';
-  }
-
-  return NextResponse.json({ analysis });
 }
