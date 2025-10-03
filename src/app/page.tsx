@@ -12,8 +12,8 @@ interface Card {
   elixirCost: number;
   maxLevel: number;
   rarity: string;
-  winRate?: number; // Optional, as it comes from RoyaleAPI stats
-  usageRate?: number; // Optional, as it comes from RoyaleAPI stats
+  // winRate?: number; // Removed as RoyaleAPI stats are no longer integrated
+  // usageRate?: number; // Removed as RoyaleAPI stats are no longer integrated
 }
 
 interface AnalysisResult {
@@ -59,6 +59,23 @@ interface SimilarDeckResult {
   similarMetaDecks: SimilarDeckMetaDeck[];
 }
 
+interface PopularCard {
+  name: string;
+  count: number;
+  iconUrls: { medium: string };
+}
+
+interface PopularDeck {
+  count: number;
+  deck: Card[];
+}
+
+interface ArchetypeDistributionItem {
+  archetype: string;
+  count: number;
+  percentage: number;
+}
+
 export default function Home() {
   const [cards, setCards] = useState<Card[]>([]);
   const [deck, setDeck] = useState<Card[]>([]);
@@ -69,11 +86,15 @@ export default function Home() {
   const [analyzing, setAnalyzing] = useState<boolean>(false);
   const [playerTag, setPlayerTag] = useState<string>('');
   const [importingDeck, setImportingDeck] = useState<boolean>(false);
-  const [cardStats, setCardStats] = useState<Record<string, { winRate: number; usageRate: number }>>({});
+  // const [cardStats, setCardStats] = useState<Record<string, { winRate: number; usageRate: number }>>({}); // Removed
   const [swappingCardId, setSwappingCardId] = useState<string | null>(null);
   const [swappedInCard, setSwappedInCard] = useState<Card | null>(null);
   const [findingSimilarDecks, setFindingSimilarDecks] = useState<boolean>(false);
   const [similarDecksAnalysis, setSimilarDecksAnalysis] = useState<SimilarDeckResult | null>(null);
+  const [popularCards, setPopularCards] = useState<PopularCard[]>([]);
+  const [popularDecks, setPopularDecks] = useState<PopularDeck[]>([]);
+  const [archetypeDistribution, setArchetypeDistribution] = useState<ArchetypeDistributionItem[]>([]);
+  const [fetchingMetaInsights, setFetchingMetaInsights] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -81,28 +102,49 @@ export default function Home() {
       const cardsResponse = await fetch('/api/cards');
       const cardsData = await cardsResponse.json();
 
-      // Fetch RoyaleAPI stats
-      const statsResponse = await fetch('/api/royaleapi-stats');
-      const statsData = await statsResponse.json();
-
-      // Map stats to cards
-      const statsMap: Record<string, { winRate: number; usageRate: number }> = {};
-      if (statsData.cardStats) {
-        statsData.cardStats.forEach((stat: any) => {
-          statsMap[stat.id] = { winRate: stat.winRate, usageRate: stat.usageRate };
-        });
-      }
-      setCardStats(statsMap);
+      // Removed fetching RoyaleAPI stats here
 
       const mergedCards = cardsData.items.map((card: Card) => ({
         ...card,
-        winRate: statsMap[card.id]?.winRate || 0,
-        usageRate: statsMap[card.id]?.usageRate || 0,
+        // Removed winRate and usageRate from here as well
       }));
       setCards(mergedCards);
     };
 
     fetchData();
+  }, []);
+
+  const fetchMetaInsights = async () => {
+    setFetchingMetaInsights(true);
+    try {
+      // Trigger meta deck collection (will use cache if valid)
+      await fetch('/api/collect-meta-decks');
+
+      const [popularCardsRes, popularDecksRes, archetypeDistRes] = await Promise.all([
+        fetch('/api/meta/popular-cards'),
+        fetch('/api/meta/popular-decks'),
+        fetch('/api/meta/archetype-distribution'),
+      ]);
+
+      const popularCardsData = await popularCardsRes.json();
+      const popularDecksData = await popularDecksRes.json();
+      const archetypeDistData = await archetypeDistRes.json();
+
+      if (popularCardsData.popularCards) setPopularCards(popularCardsData.popularCards);
+      if (popularDecksData.popularDecks) setPopularDecks(popularDecksData.popularDecks);
+      if (archetypeDistData.archetypeDistribution) setArchetypeDistribution(archetypeDistData.archetypeDistribution);
+
+    } catch (error) {
+      console.error('Failed to fetch meta insights:', error);
+      alert('Failed to fetch meta insights. Please try again.');
+    } finally {
+      setFetchingMetaInsights(false);
+    }
+  };
+
+  // Fetch meta insights on initial load
+  useEffect(() => {
+    fetchMetaInsights();
   }, []);
 
   const handleCardClick = (card: Card) => {
@@ -167,13 +209,8 @@ export default function Home() {
       const response = await fetch(`/api/player/${playerTag}`);
       const data = await response.json();
       if (response.ok && data.decks && data.decks.length > 0) {
-        // Merge imported cards with stats
-        const importedDeckWithStats = data.decks[0].map((card: Card) => ({
-          ...card,
-          winRate: cardStats[card.id]?.winRate || 0,
-          usageRate: cardStats[card.id]?.usageRate || 0,
-        }));
-        setDeck(importedDeckWithStats);
+        // Removed merging with cardStats here
+        setDeck(data.decks[0]);
       } else {
         alert(data.error || 'Failed to import deck. Please check player tag.');
       }
@@ -246,6 +283,22 @@ export default function Home() {
     const totalElixir = deck.reduce((sum, card) => sum + card.elixirCost, 0);
     return (totalElixir / deck.length).toFixed(1);
   };
+
+  const getElixirDistribution = () => {
+    const distribution: Record<number, number> = {};
+    for (let i = 1; i <= 9; i++) {
+      distribution[i] = 0;
+    }
+    deck.forEach(card => {
+      if (card.elixirCost >= 1 && card.elixirCost <= 9) {
+        distribution[card.elixirCost]++;
+      }
+    });
+    return distribution;
+  };
+
+  const elixirDistribution = getElixirDistribution();
+  const maxCardsAtAnyElixir = Math.max(...Object.values(elixirDistribution), 1); // Ensure at least 1 for division
 
   const openCardModal = (card: Card) => {
     setSelectedCard(card);
@@ -503,6 +556,74 @@ export default function Home() {
           </div>
         )}
 
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4">Elixir Curve</h2>
+          <div className="flex items-end h-32 bg-gray-200 rounded-lg p-2">
+            {Object.entries(elixirDistribution).map(([elixirCost, count]) => (
+              <div key={elixirCost} className="flex flex-col items-center flex-grow h-full justify-end mx-1">
+                <div
+                  className="w-full bg-blue-500 rounded-t-sm"
+                  style={{ height: `${(count / maxCardsAtAnyElixir) * 100}%` }}
+                ></div>
+                <span className="text-xs font-semibold mt-1">{elixirCost}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mb-8 p-4 bg-gray-100 rounded-lg">
+          <h2 className="text-2xl font-bold mb-4 text-gray-800">Current Meta Insights</h2>
+          {fetchingMetaInsights ? (
+            <p className="text-gray-600">Fetching latest meta insights...</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Popular Cards */}
+              <div>
+                <h3 className="text-xl font-semibold mb-2">🔥 Top 10 Popular Cards</h3>
+                <div className="flex flex-wrap gap-2">
+                  {popularCards.map(card => (
+                    <div key={card.name} className="text-center w-16">
+                      <img src={card.iconUrls.medium} alt={card.name} className="w-full" />
+                      <p className="text-xs">{card.name}</p>
+                      <p className="text-xs font-bold">{card.count}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Popular Decks */}
+              <div>
+                <h3 className="text-xl font-semibold mb-2">🏆 Top 5 Popular Decks</h3>
+                {popularDecks.map((deckData, index) => (
+                  <div key={index} className="mb-4 p-2 border border-gray-300 rounded-lg bg-white">
+                    <p className="font-semibold">Deck {index + 1} ({deckData.count} players)</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {deckData.deck.map(card => (
+                        <div key={card.id} className="text-center w-12">
+                          <img src={card.iconUrls.medium} alt={card.name} className="w-full" />
+                          <p className="text-xs">{card.name}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Archetype Distribution */}
+              <div className="md:col-span-2">
+                <h3 className="text-xl font-semibold mb-2">📈 Archetype Distribution</h3>
+                <div className="flex flex-wrap gap-4">
+                  {archetypeDistribution.map((item, index) => (
+                    <div key={index} className="p-2 border border-gray-300 rounded-lg bg-white">
+                      <p className="font-semibold">{item.archetype}: {item.percentage.toFixed(1)}%</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div>
           <h2 className="text-2xl font-semibold mb-4">Available Cards</h2>
           <div className="mb-4">
@@ -554,12 +675,7 @@ export default function Home() {
                 </Tilt>
                 <p className="text-lg"><span className="font-semibold">Elixir Cost:</span> {selectedCard.elixirCost}</p>
                 <p className="text-lg"><span className="font-semibold">Rarity:</span> {selectedCard.rarity}</p>
-                {selectedCard.winRate !== undefined && (
-                  <p className="text-lg"><span className="font-semibold">Win Rate:</span> {selectedCard.winRate.toFixed(2)}%</p>
-                )}
-                {selectedCard.usageRate !== undefined && (
-                  <p className="text-lg"><span className="font-semibold">Usage Rate:</span> {selectedCard.usageRate.toFixed(2)}%</p>
-                )}
+                {/* Removed winRate and usageRate display from here */}
                 <p className="text-lg"><span className="font-semibold">Max Level:</span> {selectedCard.maxLevel}</p>
               </div>
             </div>
