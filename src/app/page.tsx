@@ -33,6 +33,11 @@ interface AnalysisResult {
   }[];
 }
 
+interface GeneratedDeckResult {
+  generatedDeck: { id: string; name: string }[];
+  explanation: string;
+}
+
 export default function Home() {
   const [cards, setCards] = useState<Card[]>([]);
   const [deck, setDeck] = useState<Card[]>([]);
@@ -46,6 +51,10 @@ export default function Home() {
   const [cardStats, setCardStats] = useState<Record<string, { winRate: number; usageRate: number }>>({});
   const [swappingCardId, setSwappingCardId] = useState<string | null>(null);
   const [swappedInCard, setSwappedInCard] = useState<Card | null>(null);
+  const [showGenerateDeckModal, setShowGenerateDeckModal] = useState<boolean>(false);
+  const [generatingDeck, setGeneratingDeck] = useState<boolean>(false);
+  const [archetypePreference, setArchetypePreference] = useState<string>('');
+  const [generatedDeckExplanation, setGeneratedDeckExplanation] = useState<string>('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -126,10 +135,57 @@ export default function Home() {
     }
   };
 
-  const generateRandomDeck = () => {
-    const shuffled = cards.sort(() => 0.5 - Math.random());
-    const newDeck = shuffled.slice(0, 8);
-    setDeck(newDeck);
+  const generateDeck = async () => {
+    setGeneratingDeck(true);
+    setGeneratedDeckExplanation('');
+    try {
+      const response = await fetch('/api/generate-deck', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          archetype: archetypePreference,
+          elixirPreference: 'Balanced', // Placeholder for future slider
+          winConditionPreference: 'Any', // Placeholder for future slider
+          availableCards: cards, // Send all available cards for AI to choose from
+        }),
+      });
+      const data = await response.json();
+      console.log('Generated Deck Raw Data:', data);
+
+      if (data.generatedData) {
+        try {
+          const parsedGeneratedData: GeneratedDeckResult = JSON.parse(data.generatedData);
+          const newDeckCards: Card[] = [];
+          for (const generatedCard of parsedGeneratedData.generatedDeck) {
+            const fullCard = cards.find(c => c.name === generatedCard.name);
+            if (fullCard) {
+              newDeckCards.push(fullCard);
+            }
+          }
+          if (newDeckCards.length === 8) {
+            setDeck(newDeckCards);
+            setGeneratedDeckExplanation(parsedGeneratedData.explanation);
+            setAnalysis(null); // Clear previous analysis
+            setShowGenerateDeckModal(false);
+          } else {
+            alert('AI generated an incomplete deck. Please try again.');
+          }
+        } catch (jsonError) {
+          console.error('Failed to parse AI generated deck JSON:', jsonError);
+          alert('Failed to parse AI generated deck. Please try again or check console for details.');
+        }
+      } else {
+        alert(data.error || 'AI deck generation returned no data.');
+      }
+    } catch (error) {
+      console.error('Error generating deck:', error);
+      alert('Failed to generate deck. Please try again.');
+    }
+    finally {
+      setGeneratingDeck(false);
+    }
   };
 
   const importPlayerDeck = async () => {
@@ -264,25 +320,13 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-4 md:grid-cols-8 gap-4 bg-gray-200 p-4 rounded-lg">
             {deck.map(card => (
-              <div
-                key={card.id}
-                onClick={() => handleDeckCardClick(card)}
-                className={`cursor-pointer text-center ${swappingCardId === card.id ? 'card-out-animation' : ''}`}
-              >
+              <div key={card.id} onClick={() => handleDeckCardClick(card)} className="cursor-pointer text-center">
                 <Tilt glareEnable={true} glareMaxOpacity={0.8} glareColor="#ffffff" glarePosition="bottom" tiltMaxAngleX={10} tiltMaxAngleY={10}>
                   <img src={card.iconUrls.medium} alt={card.name} className="w-full" />
                 </Tilt>
                 <p className="text-sm font-semibold">{card.name}</p>
               </div>
             ))}
-            {swappingCardId && swappedInCard && (
-              <div key={swappedInCard.id} className="cursor-pointer text-center card-in-animation">
-                <Tilt glareEnable={true} glareMaxOpacity={0.8} glareColor="#ffffff" glarePosition="bottom" tiltMaxAngleX={10} tiltMaxAngleY={10}>
-                  <img src={swappedInCard.iconUrls.medium} alt={swappedInCard.name} className="w-full" />
-                </Tilt>
-                <p className="text-sm font-semibold">{swappedInCard.name}</p>
-              </div>
-            )}
             {[...Array(8 - deck.length)].map((_, i) => (
               <div key={i} className="w-full h-full bg-gray-300 rounded-lg" />
             ))}
@@ -296,7 +340,7 @@ export default function Home() {
               {analyzing ? 'Analyzing...' : 'Analyze Deck'}
             </button>
             <button
-              onClick={generateRandomDeck}
+              onClick={() => setShowGenerateDeckModal(true)}
               className="bg-green-500 text-white font-bold py-2 px-4 rounded mr-2"
             >
               AI Generate Deck
@@ -379,6 +423,13 @@ export default function Home() {
           </div>
         )}
 
+        {generatedDeckExplanation && (
+          <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative mb-8" role="alert">
+            <strong className="font-bold">Generated Deck Explanation:</strong>
+            <p className="mt-2">{generatedDeckExplanation}</p>
+          </div>
+        )}
+
         <div>
           <h2 className="text-2xl font-semibold mb-4">Available Cards</h2>
           <div className="mb-4">
@@ -437,6 +488,45 @@ export default function Home() {
                   <p className="text-lg"><span className="font-semibold">Usage Rate:</span> {selectedCard.usageRate.toFixed(2)}%</p>
                 )}
                 <p className="text-lg"><span className="font-semibold">Max Level:</span> {selectedCard.maxLevel}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showGenerateDeckModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div className="bg-white p-8 rounded-lg max-w-md w-full text-gray-800">
+              <h2 className="text-2xl font-bold mb-4">Generate AI Deck</h2>
+              <div className="mb-4">
+                <label htmlFor="archetype" className="block text-lg font-semibold mb-2">Archetype Preference:</label>
+                <select
+                  id="archetype"
+                  value={archetypePreference}
+                  onChange={e => setArchetypePreference(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="">Any</option>
+                  <option value="Beatdown">Beatdown</option>
+                  <option value="Siege">Siege</option>
+                  <option value="Cycle">Cycle</option>
+                  <option value="Control">Control</option>
+                  <option value="Bridge Spam">Bridge Spam</option>
+                </select>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowGenerateDeckModal(false)}
+                  className="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded mr-2"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={generateDeck}
+                  disabled={generatingDeck}
+                  className="bg-green-500 text-white font-bold py-2 px-4 rounded"
+                >
+                  {generatingDeck ? 'Generating...' : 'Generate Deck'}
+                </button>
               </div>
             </div>
           </div>
