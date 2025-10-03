@@ -6,35 +6,38 @@ export async function POST(req: Request) {
     const { deck } = await req.json();
 
     const prompt = `
-      You are a highly experienced Clash Royale deck analyst. Your goal is to provide dynamic, insightful, and meta-aware feedback on the user's deck. Consider current popular meta decks, card usage rates, and win rates when formulating your analysis. The response should be structured, easy to read, and provide actionable advice.
+      You are a highly experienced Clash Royale deck analyst. Your goal is to provide dynamic, insightful, and meta-aware feedback on the user's deck. Consider current popular meta decks, card usage rates, and win rates when formulating your analysis. The response should be a JSON object, structured for easy parsing and dynamic display on a frontend.
 
       Deck:
-      ${deck.map((card: any) => `- ${card.name} (Elixir: ${card.elixirCost}, Rarity: ${card.rarity})`).join('\n')}
+      ${deck.map((card: any) => `- ${card.name} (Elixir: ${card.elixirCost}, Rarity: ${card.rarity}, Win Rate: ${card.winRate?.toFixed(2)}%, Usage Rate: ${card.usageRate?.toFixed(2)}%)`).join('\n')}
 
-      Provide a comprehensive analysis in markdown format, including:
+      Provide a comprehensive analysis as a JSON object with the following structure:
+      {
+        "deckOverview": {
+          "archetype": "string", // e.g., "Beatdown", "Siege", "Cycle", "Control"
+          "playstyle": "string",
+          "elixirComment": "string" // Comment on average elixir cost in meta context
+        },
+        "strengths": [
+          { "title": "string", "description": "string" } // 2-3 significant strengths
+        ],
+        "weaknesses": [
+          { "title": "string", "description": "string" } // 2-3 major weaknesses
+        ],
+        "synergies": [
+          { "title": "string", "description": "string" } // 2-3 crucial card synergies
+        ],
+        "suggestedImprovements": [
+          {
+            "cardToReplace": "string", // Name of card to replace
+            "reasonToReplace": "string",
+            "cardToAdd": "string", // Name of card to add
+            "reasonToAdd": "string"
+          }
+        ]
+      }
 
-      ### 📊 Deck Overview
-      - Briefly describe the likely archetype (e.g., Beatdown, Siege, Cycle, Control) and its general playstyle.
-      - Comment on the average elixir cost in the current meta context.
-
-      ### 💪 Strengths
-      - Detail 2-3 significant strengths of this deck, explaining *why* they are strengths in the current meta.
-      - Mention specific card interactions that create powerful pushes or defenses.
-
-      ### 📉 Weaknesses
-      - Identify 2-3 major weaknesses, explaining what common meta decks or card combinations this deck struggles against.
-      - Point out any glaring vulnerabilities (e.g., lack of air defense, susceptibility to spell bait).
-
-      ### ✨ Key Synergies
-      - Highlight 2-3 crucial card synergies within the deck and how they should be played together.
-
-      ### 💡 Suggested Improvements
-      - Propose 1-2 specific card replacements or additions. For each suggestion, explain:
-        - Which card to replace and why.
-        - Which card to add and why it improves the deck's meta standing, addresses a weakness, or enhances a strength.
-        - Consider the impact on elixir cost and overall archetype.
-
-      Ensure your feedback is direct, uses Clash Royale terminology, and is highly valuable for a player looking to optimize their deck for competitive play.
+      Ensure your feedback is direct, uses Clash Royale terminology, and is highly valuable for a player looking to optimize their deck for competitive play. Do NOT include any markdown formatting outside of the JSON object itself. The entire response MUST be a valid JSON object.
     `;
 
     const response = await axios.post(
@@ -42,10 +45,12 @@ export async function POST(req: Request) {
       {
         model: 'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',
         messages: [{ role: 'user', content: prompt }],
+        response_format: { type: "json_object" }, // Explicitly request JSON object
       },
       {
         headers: {
           Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
         },
       }
     );
@@ -54,7 +59,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ analysis });
   } catch (error) {
-    console.error(error);
+    console.error('Failed to analyze deck:', error.response?.data || error.message);
     return NextResponse.json({ error: 'Failed to analyze deck' }, { status: 500 });
   }
 }
