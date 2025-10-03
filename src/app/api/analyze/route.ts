@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
@@ -7,16 +6,35 @@ export async function POST(req: Request) {
     const { deck } = await req.json();
 
     const prompt = `
-      You are a Clash Royale expert. Analyze the following deck and provide feedback.
+      You are a highly experienced Clash Royale deck analyst. Your goal is to provide dynamic, insightful, and meta-aware feedback on the user's deck. Consider current popular meta decks, card usage rates, and win rates when formulating your analysis. The response should be structured, easy to read, and provide actionable advice.
 
       Deck:
-      ${deck.map((card: any) => `- ${card.name}`).join('\n')}
+      ${deck.map((card: any) => `- ${card.name} (Elixir: ${card.elixirCost}, Rarity: ${card.rarity})`).join('\n')}
 
-      Provide the following analysis in markdown format:
-      1.  **Strengths:** What are the main strengths of this deck?
-      2.  **Weaknesses:** What are the main weaknesses of this deck?
-      3.  **Synergies:** What are the key synergies between the cards in this deck?
-      4.  **Suggested Improvements:** Suggest 1-2 card replacements to improve the deck and explain why.
+      Provide a comprehensive analysis in markdown format, including:
+
+      ### 📊 Deck Overview
+      - Briefly describe the likely archetype (e.g., Beatdown, Siege, Cycle, Control) and its general playstyle.
+      - Comment on the average elixir cost in the current meta context.
+
+      ### 💪 Strengths
+      - Detail 2-3 significant strengths of this deck, explaining *why* they are strengths in the current meta.
+      - Mention specific card interactions that create powerful pushes or defenses.
+
+      ### 📉 Weaknesses
+      - Identify 2-3 major weaknesses, explaining what common meta decks or card combinations this deck struggles against.
+      - Point out any glaring vulnerabilities (e.g., lack of air defense, susceptibility to spell bait).
+
+      ### ✨ Key Synergies
+      - Highlight 2-3 crucial card synergies within the deck and how they should be played together.
+
+      ### 💡 Suggested Improvements
+      - Propose 1-2 specific card replacements or additions. For each suggestion, explain:
+        - Which card to replace and why.
+        - Which card to add and why it improves the deck's meta standing, addresses a weakness, or enhances a strength.
+        - Consider the impact on elixir cost and overall archetype.
+
+      Ensure your feedback is direct, uses Clash Royale terminology, and is highly valuable for a player looking to optimize their deck for competitive play.
     `;
 
     const response = await axios.post(

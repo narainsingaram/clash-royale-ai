@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Tilt from 'react-parallax-tilt';
+import ReactMarkdown from 'react-markdown';
 
 interface Card {
   id: string;
@@ -22,6 +23,8 @@ export default function Home() {
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [addingCard, setAddingCard] = useState<Card | null>(null);
   const [analyzing, setAnalyzing] = useState<boolean>(false);
+  const [playerTag, setPlayerTag] = useState<string>('');
+  const [importingDeck, setImportingDeck] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchCards = async () => {
@@ -58,10 +61,13 @@ export default function Home() {
         body: JSON.stringify({ deck }),
       });
       const data = await response.json();
+      console.log('API Response Data:', data); // Added console.log
       setAnalysis(data.analysis);
     } catch (error) {
+      console.error('Error analyzing deck:', error); // Added console.error
       setAnalysis('Failed to analyze deck. Please try again.');
-    } finally {
+    }
+    finally {
       setAnalyzing(false);
     }
   };
@@ -70,6 +76,25 @@ export default function Home() {
     const shuffled = cards.sort(() => 0.5 - Math.random());
     const newDeck = shuffled.slice(0, 8);
     setDeck(newDeck);
+  };
+
+  const importPlayerDeck = async () => {
+    if (!playerTag) return;
+    setImportingDeck(true);
+    try {
+      const response = await fetch(`/api/player/${playerTag}`);
+      const data = await response.json();
+      if (response.ok && data.decks && data.decks.length > 0) {
+        setDeck(data.decks[0]);
+      } else {
+        alert(data.error || 'Failed to import deck. Please check player tag.');
+      }
+    } catch (error) {
+      alert('Failed to import deck. Please check player tag and try again.');
+    }
+    finally {
+      setImportingDeck(false);
+    }
   };
 
   const calculateAverageElixir = () => {
@@ -152,9 +177,23 @@ export default function Home() {
             </button>
             <button
               onClick={generateRandomDeck}
-              className="bg-green-500 text-white font-bold py-2 px-4 rounded"
+              className="bg-green-500 text-white font-bold py-2 px-4 rounded mr-2"
             >
               AI Generate Deck
+            </button>
+            <input
+              type="text"
+              placeholder="#PLAYER_TAG"
+              value={playerTag}
+              onChange={e => setPlayerTag(e.target.value)}
+              className="p-2 border border-gray-300 rounded-lg mr-2"
+            />
+            <button
+              onClick={importPlayerDeck}
+              disabled={importingDeck}
+              className="bg-purple-500 text-white font-bold py-2 px-4 rounded"
+            >
+              {importingDeck ? 'Importing...' : 'Import Deck'}
             </button>
           </div>
         </div>
@@ -162,7 +201,9 @@ export default function Home() {
         {analysis && (
           <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-8" role="alert">
             <strong className="font-bold">AI Analysis:</strong>
-            <div className="prose" dangerouslySetInnerHTML={{ __html: analysis }} />
+            <div className="prose">
+              <ReactMarkdown>{analysis}</ReactMarkdown>
+            </div>
           </div>
         )}
 
