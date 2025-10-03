@@ -41,6 +41,12 @@ export default function Home() {
     setAnalysis('Deck analysis coming soon!');
   };
 
+  const generateRandomDeck = () => {
+    const shuffled = cards.sort(() => 0.5 - Math.random());
+    const newDeck = shuffled.slice(0, 8);
+    setDeck(newDeck);
+  };
+
   const filteredCards = cards.filter(card =>
     card.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -66,9 +72,15 @@ export default function Home() {
           <button
             onClick={analyzeDeck}
             disabled={deck.length !== 8}
-            className="bg-blue-500 text-white font-bold py-2 px-4 rounded disabled:bg-gray-400"
+            className="bg-blue-500 text-white font-bold py-2 px-4 rounded disabled:bg-gray-400 mr-2"
           >
             Analyze Deck
+          </button>
+          <button
+            onClick={generateRandomDeck}
+            className="bg-green-500 text-white font-bold py-2 px-4 rounded"
+          >
+            AI Generate Deck
           </button>
         </div>
       </div>
