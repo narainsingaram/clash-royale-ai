@@ -16,7 +16,14 @@ export async function POST(req: Request) {
         "deckOverview": {
           "archetype": "string", // e.g., "Beatdown", "Siege", "Cycle", "Control"
           "playstyle": "string",
-          "elixirComment": "string" // Comment on average elixir cost in meta context
+          "elixirComment": "string", // Comment on average elixir cost in meta context
+          "cardRoles": { // Categorization of cards by role
+            "winConditions": ["string"], // Names of cards that are primary win conditions
+            "supportCards": ["string"], // Names of cards that support win conditions or defense
+            "cycleCards": ["string"], // Names of low-elixir cards used for cycling
+            "defensiveCore": ["string"], // Names of cards central to defense (e.g., buildings, strong defensive troops)
+            "spells": ["string"] // Names of spell cards
+          }
         },
         "strengths": [
           { "title": "string", "description": "string" } // 2-3 significant strengths
@@ -37,7 +44,7 @@ export async function POST(req: Request) {
         ]
       }
 
-      Ensure your feedback is direct, uses Clash Royale terminology, and is highly valuable for a player looking to optimize their deck for competitive play. Do NOT include any markdown formatting outside of the JSON object itself. The entire response MUST be a valid JSON object.
+      Ensure your feedback is direct, uses Clash Royale terminology, and is highly valuable for a player looking to optimize their deck for competitive play. The entire response MUST be a valid JSON object.
     `;
 
     const response = await axios.post(
@@ -45,7 +52,7 @@ export async function POST(req: Request) {
       {
         model: 'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',
         messages: [{ role: 'user', content: prompt }],
-        response_format: { type: "json_object" }, // Explicitly request JSON object
+        response_format: { type: "json_object" },
       },
       {
         headers: {

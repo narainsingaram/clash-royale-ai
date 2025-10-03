@@ -1,0 +1,38 @@
+[
+  {
+    "name": "2.6 Hog Cycle",
+    "archetype": "Cycle",
+    "cards": ["Hog Rider", "Musketeer", "Ice Golem", "Skeletons", "Ice Spirit", "Cannon", "Fireball", "The Log"],
+    "coreStrategy": "Fast cycle to overwhelm opponent with Hog Rider pushes, supported by cheap defense and spells."
+  },
+  {
+    "name": "P.E.K.K.A Bridge Spam",
+    "archetype": "Bridge Spam",
+    "cards": ["P.E.K.K.A", "Battle Ram", "Bandit", "Royal Ghost", "Electro Wizard", "Poison", "Zap", "Minions"],
+    "coreStrategy": "Aggressive pushes at the bridge with fast troops, backed by P.E.K.K.A defense and spells."
+  },
+  {
+    "name": "Golem Beatdown",
+    "archetype": "Beatdown",
+    "cards": ["Golem", "Night Witch", "Baby Dragon", "Mega Minion", "Lumberjack", "Lightning", "Tornado", "Elixir Collector"],
+    "coreStrategy": "Build a massive push behind Golem, using support troops and spells to destroy towers."
+  },
+  {
+    "name": "X-Bow 2.9 Cycle",
+    "archetype": "Siege",
+    "cards": ["X-Bow", "Tesla", "Archers", "Skeletons", "Ice Golem", "The Log", "Fireball", "Knight"],
+    "coreStrategy": "Defend and cycle to X-Bow to lock onto opponent's towers, using cheap cards and spells."
+  },
+  {
+    "name": "LavaLoon",
+    "archetype": "Beatdown",
+    "cards": ["Lava Hound", "Balloon", "Mega Minion", "Inferno Dragon", "Arrows", "Zap", "Tombstone", "Minions"],
+    "coreStrategy": "Air-based beatdown, using Lava Hound as a tank for Balloon and other air support."
+  },
+  {
+    "name": "Log Bait",
+    "archetype": "Spell Bait",
+    "cards": ["Goblin Barrel", "Princess", "Inferno Tower", "Knight", "The Log", "Rocket", "Ice Spirit", "Goblin Gang"],
+    "coreStrategy": "Force out opponent's small spells with bait cards, then punish with Goblin Barrel."
+  }
+]

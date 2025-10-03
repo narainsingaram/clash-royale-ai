@@ -21,6 +21,13 @@ interface AnalysisResult {
     archetype: string;
     playstyle: string;
     elixirComment: string;
+    cardRoles: { // Categorization of cards by role
+      winConditions: string[];
+      supportCards: string[];
+      cycleCards: string[];
+      defensiveCore: string[];
+      spells: string[];
+    };
   };
   strengths: { title: string; description: string }[];
   weaknesses: { title: string; description: string }[];
@@ -33,9 +40,23 @@ interface AnalysisResult {
   }[];
 }
 
-interface GeneratedDeckResult {
-  generatedDeck: { id: string; name: string }[];
-  explanation: string;
+interface SimilarDeckMetaDeck {
+  name: string;
+  coreStrategy: string;
+  similarityExplanation: string;
+  keyDifferences: string;
+  suggestedSwapsToMatch?: {
+    cardToReplace: string;
+    cardToAdd: string;
+    reason: string;
+  }[];
+  cards: Card[]; // Full card objects for this meta deck
+  similarity: number; // Algorithmic similarity score
+}
+
+interface SimilarDeckResult {
+  identifiedArchetype: string;
+  similarMetaDecks: SimilarDeckMetaDeck[];
 }
 
 export default function Home() {
@@ -51,10 +72,8 @@ export default function Home() {
   const [cardStats, setCardStats] = useState<Record<string, { winRate: number; usageRate: number }>>({});
   const [swappingCardId, setSwappingCardId] = useState<string | null>(null);
   const [swappedInCard, setSwappedInCard] = useState<Card | null>(null);
-  const [showGenerateDeckModal, setShowGenerateDeckModal] = useState<boolean>(false);
-  const [generatingDeck, setGeneratingDeck] = useState<boolean>(false);
-  const [archetypePreference, setArchetypePreference] = useState<string>('');
-  const [generatedDeckExplanation, setGeneratedDeckExplanation] = useState<string>('');
+  const [findingSimilarDecks, setFindingSimilarDecks] = useState<boolean>(false);
+  const [similarDecksAnalysis, setSimilarDecksAnalysis] = useState<SimilarDeckResult | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -135,57 +154,10 @@ export default function Home() {
     }
   };
 
-  const generateDeck = async () => {
-    setGeneratingDeck(true);
-    setGeneratedDeckExplanation('');
-    try {
-      const response = await fetch('/api/generate-deck', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          archetype: archetypePreference,
-          elixirPreference: 'Balanced', // Placeholder for future slider
-          winConditionPreference: 'Any', // Placeholder for future slider
-          availableCards: cards, // Send all available cards for AI to choose from
-        }),
-      });
-      const data = await response.json();
-      console.log('Generated Deck Raw Data:', data);
-
-      if (data.generatedData) {
-        try {
-          const parsedGeneratedData: GeneratedDeckResult = JSON.parse(data.generatedData);
-          const newDeckCards: Card[] = [];
-          for (const generatedCard of parsedGeneratedData.generatedDeck) {
-            const fullCard = cards.find(c => c.name === generatedCard.name);
-            if (fullCard) {
-              newDeckCards.push(fullCard);
-            }
-          }
-          if (newDeckCards.length === 8) {
-            setDeck(newDeckCards);
-            setGeneratedDeckExplanation(parsedGeneratedData.explanation);
-            setAnalysis(null); // Clear previous analysis
-            setShowGenerateDeckModal(false);
-          } else {
-            alert('AI generated an incomplete deck. Please try again.');
-          }
-        } catch (jsonError) {
-          console.error('Failed to parse AI generated deck JSON:', jsonError);
-          alert('Failed to parse AI generated deck. Please try again or check console for details.');
-        }
-      } else {
-        alert(data.error || 'AI deck generation returned no data.');
-      }
-    } catch (error) {
-      console.error('Error generating deck:', error);
-      alert('Failed to generate deck. Please try again.');
-    }
-    finally {
-      setGeneratingDeck(false);
-    }
+  const generateRandomDeck = () => {
+    const shuffled = cards.sort(() => 0.5 - Math.random());
+    const newDeck = shuffled.slice(0, 8);
+    setDeck(newDeck);
   };
 
   const importPlayerDeck = async () => {
@@ -210,6 +182,40 @@ export default function Home() {
     }
     finally {
       setImportingDeck(false);
+    }
+  };
+
+  const findSimilarDecks = async () => {
+    setFindingSimilarDecks(true);
+    setSimilarDecksAnalysis(null);
+    try {
+      const response = await fetch('/api/similar-decks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userDeck: deck }),
+      });
+      const data = await response.json();
+      console.log('Similar Decks Raw Data:', data);
+
+      if (data.similarDecksData) {
+        try {
+          const parsedSimilarDecks: SimilarDeckResult = JSON.parse(data.similarDecksData);
+          setSimilarDecksAnalysis(parsedSimilarDecks);
+        } catch (jsonError) {
+          console.error('Failed to parse AI similar decks JSON:', jsonError);
+          alert('Failed to parse similar decks analysis. Please try again or check console for details.');
+        }
+      } else {
+        alert(data.error || 'AI similar decks analysis returned no data.');
+      }
+    } catch (error) {
+      console.error('Error finding similar decks:', error);
+      alert('Failed to find similar decks. Please try again.');
+    }
+    finally {
+      setFindingSimilarDecks(false);
     }
   };
 
@@ -320,13 +326,25 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-4 md:grid-cols-8 gap-4 bg-gray-200 p-4 rounded-lg">
             {deck.map(card => (
-              <div key={card.id} onClick={() => handleDeckCardClick(card)} className="cursor-pointer text-center">
+              <div
+                key={card.id}
+                onClick={() => handleDeckCardClick(card)}
+                className={`cursor-pointer text-center ${swappingCardId === card.id ? 'card-out-animation' : ''}`}
+              >
                 <Tilt glareEnable={true} glareMaxOpacity={0.8} glareColor="#ffffff" glarePosition="bottom" tiltMaxAngleX={10} tiltMaxAngleY={10}>
                   <img src={card.iconUrls.medium} alt={card.name} className="w-full" />
                 </Tilt>
                 <p className="text-sm font-semibold">{card.name}</p>
               </div>
             ))}
+            {swappingCardId && swappedInCard && (
+              <div key={swappedInCard.id} className="cursor-pointer text-center card-in-animation">
+                <Tilt glareEnable={true} glareMaxOpacity={0.8} glareColor="#ffffff" glarePosition="bottom" tiltMaxAngleX={10} tiltMaxAngleY={10}>
+                  <img src={swappedInCard.iconUrls.medium} alt={swappedInCard.name} className="w-full" />
+                </Tilt>
+                <p className="text-sm font-semibold">{swappedInCard.name}</p>
+              </div>
+            )}
             {[...Array(8 - deck.length)].map((_, i) => (
               <div key={i} className="w-full h-full bg-gray-300 rounded-lg" />
             ))}
@@ -340,7 +358,7 @@ export default function Home() {
               {analyzing ? 'Analyzing...' : 'Analyze Deck'}
             </button>
             <button
-              onClick={() => setShowGenerateDeckModal(true)}
+              onClick={generateRandomDeck}
               className="bg-green-500 text-white font-bold py-2 px-4 rounded mr-2"
             >
               AI Generate Deck
@@ -355,9 +373,16 @@ export default function Home() {
             <button
               onClick={importPlayerDeck}
               disabled={importingDeck}
-              className="bg-purple-500 text-white font-bold py-2 px-4 rounded"
+              className="bg-purple-500 text-white font-bold py-2 px-4 rounded mr-2"
             >
               {importingDeck ? 'Importing...' : 'Import Deck'}
+            </button>
+            <button
+              onClick={findSimilarDecks}
+              disabled={deck.length !== 8 || findingSimilarDecks}
+              className="bg-orange-500 text-white font-bold py-2 px-4 rounded"
+            >
+              {findingSimilarDecks ? 'Finding...' : 'Find Similar Decks'}
             </button>
           </div>
         </div>
@@ -370,6 +395,24 @@ export default function Home() {
               <p><strong>Archetype:</strong> {analysis.deckOverview.archetype}</p>
               <p><strong>Playstyle:</strong> {analysis.deckOverview.playstyle}</p>
               <p><strong>Elixir Comment:</strong> {analysis.deckOverview.elixirComment}</p>
+
+              <h4 className="text-lg font-bold mt-4 mb-1">Card Roles:</h4>
+              {Object.entries(analysis.deckOverview.cardRoles).map(([role, cardsInRole]) => (
+                <div key={role} className="mb-2">
+                  <p className="font-semibold capitalize">{role.replace(/([A-Z])/g, ' $1').trim()}:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {cardsInRole.map(cardName => {
+                      const card = deck.find(c => c.name === cardName);
+                      return card ? (
+                        <div key={card.id} className="text-center w-16">
+                          <img src={card.iconUrls.medium} alt={card.name} className="w-full" />
+                          <p className="text-xs">{card.name}</p>
+                        </div>
+                      ) : null;
+                    })}
+                  </div>
+                </div>
+              ))}
 
               <h3 className="text-xl font-bold mt-4 mb-2">💪 Strengths</h3>
               <ul className="list-disc list-inside">
@@ -423,10 +466,40 @@ export default function Home() {
           </div>
         )}
 
-        {generatedDeckExplanation && (
+        {similarDecksAnalysis && (
           <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative mb-8" role="alert">
-            <strong className="font-bold">Generated Deck Explanation:</strong>
-            <p className="mt-2">{generatedDeckExplanation}</p>
+            <strong className="font-bold">Similar Meta Decks:</strong>
+            <div className="mt-2 text-gray-800">
+              <p><strong>Identified Archetype:</strong> {similarDecksAnalysis.identifiedArchetype}</p>
+              {similarDecksAnalysis.similarMetaDecks.map((metaDeck, index) => (
+                <div key={index} className="mt-4 p-3 border border-blue-300 rounded-lg bg-blue-50">
+                  <h4 className="text-lg font-bold">{metaDeck.name} ({ (metaDeck.similarity * 100).toFixed(1) } % Match)</h4>
+                  <p className="text-sm"><strong>Core Strategy:</strong> {metaDeck.coreStrategy}</p>
+                  <p className="text-sm"><strong>Similarity:</strong> {metaDeck.similarityExplanation}</p>
+                  <p className="text-sm"><strong>Key Differences:</strong> {metaDeck.keyDifferences}</p>
+                  <div className="grid grid-cols-4 md:grid-cols-8 gap-2 mt-2">
+                    {metaDeck.cards.map(card => (
+                      <div key={card.id} className="text-center w-16">
+                        <img src={card.iconUrls.medium} alt={card.name} className="w-full" />
+                        <p className="text-xs">{card.name}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {metaDeck.suggestedSwapsToMatch && metaDeck.suggestedSwapsToMatch.length > 0 && (
+                    <div className="mt-2">
+                      <p className="font-semibold">Suggested Swaps to Match:</p>
+                      <ul className="list-disc list-inside text-sm">
+                        {metaDeck.suggestedSwapsToMatch.map((swap, i) => (
+                          <li key={i}>
+                            Replace <strong>{swap.cardToReplace}</strong> with <strong>{swap.cardToAdd}</strong> ({swap.reason})
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -488,45 +561,6 @@ export default function Home() {
                   <p className="text-lg"><span className="font-semibold">Usage Rate:</span> {selectedCard.usageRate.toFixed(2)}%</p>
                 )}
                 <p className="text-lg"><span className="font-semibold">Max Level:</span> {selectedCard.maxLevel}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showGenerateDeckModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white p-8 rounded-lg max-w-md w-full text-gray-800">
-              <h2 className="text-2xl font-bold mb-4">Generate AI Deck</h2>
-              <div className="mb-4">
-                <label htmlFor="archetype" className="block text-lg font-semibold mb-2">Archetype Preference:</label>
-                <select
-                  id="archetype"
-                  value={archetypePreference}
-                  onChange={e => setArchetypePreference(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="">Any</option>
-                  <option value="Beatdown">Beatdown</option>
-                  <option value="Siege">Siege</option>
-                  <option value="Cycle">Cycle</option>
-                  <option value="Control">Control</option>
-                  <option value="Bridge Spam">Bridge Spam</option>
-                </select>
-              </div>
-              <div className="flex justify-end">
-                <button
-                  onClick={() => setShowGenerateDeckModal(false)}
-                  className="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded mr-2"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={generateDeck}
-                  disabled={generatingDeck}
-                  className="bg-green-500 text-white font-bold py-2 px-4 rounded"
-                >
-                  {generatingDeck ? 'Generating...' : 'Generate Deck'}
-                </button>
               </div>
             </div>
           </div>
