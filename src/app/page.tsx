@@ -18,6 +18,7 @@ import MetaInsights from '../components/MetaInsights';
 import CardList from '../components/CardList';
 import CardModal from '../components/CardModal';
 import FloatingDeck from '../components/FloatingDeck';
+import SynergyVisualizer from '../components/SynergyVisualizer';
 
 export default function Home() {
   const [cards, setCards] = useState<Card[]>([]);
@@ -377,6 +378,12 @@ export default function Home() {
         {similarDecksAnalysis && <SimilarDecks similarDecksAnalysis={similarDecksAnalysis} />}
 
         <ElixirCurve elixirDistribution={elixirDistribution} maxCardsAtAnyElixir={maxCardsAtAnyElixir} />
+
+        <SynergyVisualizer 
+          deck={deck} 
+          cards={cards} 
+          highlightedCards={highlightedCards} 
+        />
 
         <MetaInsights 
           fetchingMetaInsights={fetchingMetaInsights}
