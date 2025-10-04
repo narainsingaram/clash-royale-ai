@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Card, 
   AnalysisResult, 
@@ -17,6 +17,7 @@ import ElixirCurve from '../components/ElixirCurve';
 import MetaInsights from '../components/MetaInsights';
 import CardList from '../components/CardList';
 import CardModal from '../components/CardModal';
+import FloatingDeck from '../components/FloatingDeck';
 
 export default function Home() {
   const [cards, setCards] = useState<Card[]>([]);
@@ -28,7 +29,6 @@ export default function Home() {
   const [analyzing, setAnalyzing] = useState<boolean>(false);
   const [playerTag, setPlayerTag] = useState<string>('');
   const [importingDeck, setImportingDeck] = useState<boolean>(false);
-  // const [cardStats, setCardStats] = useState<Record<string, { winRate: number; usageRate: number }>>({}); // Removed
   const [swappingCardId, setSwappingCardId] = useState<string | null>(null);
   const [swappedInCard, setSwappedInCard] = useState<Card | null>(null);
   const [findingSimilarDecks, setFindingSimilarDecks] = useState<boolean>(false);
@@ -37,6 +37,28 @@ export default function Home() {
   const [popularDecks, setPopularDecks] = useState<PopularDeck[]>([]);
   const [archetypeDistribution, setArchetypeDistribution] = useState<ArchetypeDistributionItem[]>([]);
   const [fetchingMetaInsights, setFetchingMetaInsights] = useState<boolean>(false);
+  const [isDeckInView, setIsDeckInView] = useState(true);
+
+  const deckRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsDeckInView(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+
+    if (deckRef.current) {
+      observer.observe(deckRef.current);
+    }
+
+    return () => {
+      if (deckRef.current) {
+        observer.unobserve(deckRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -312,13 +334,15 @@ export default function Home() {
       <div className="container mx-auto p-4 font-sans">
         <h1 className="text-5xl text-center mb-8 text-clash-gold" style={{ textShadow: '3px 3px 0px var(--clash-wood)' }}>Clash Royale AI Deck Analyzer</h1>
 
-        <Deck 
-          deck={deck}
-          swappingCardId={swappingCardId}
-          swappedInCard={swappedInCard}
-          handleDeckCardClick={handleDeckCardClick}
-          calculateAverageElixir={calculateAverageElixir}
-        />
+        <div ref={deckRef}>
+          <Deck 
+            deck={deck}
+            swappingCardId={swappingCardId}
+            swappedInCard={swappedInCard}
+            handleDeckCardClick={handleDeckCardClick}
+            calculateAverageElixir={calculateAverageElixir}
+          />
+        </div>
 
         <DeckActions
           deckLength={deck.length}
@@ -343,7 +367,7 @@ export default function Home() {
           />
         }
 
-                {similarDecksAnalysis && <SimilarDecks similarDecksAnalysis={similarDecksAnalysis} />}
+        {similarDecksAnalysis && <SimilarDecks similarDecksAnalysis={similarDecksAnalysis} />}
 
         <ElixirCurve elixirDistribution={elixirDistribution} maxCardsAtAnyElixir={maxCardsAtAnyElixir} />
 
@@ -364,6 +388,8 @@ export default function Home() {
         />
 
         {selectedCard && <CardModal selectedCard={selectedCard} closeCardModal={closeCardModal} />}
+
+        {!isDeckInView && <FloatingDeck deck={deck} calculateAverageElixir={calculateAverageElixir} />}
       </div>
     </>
   );
