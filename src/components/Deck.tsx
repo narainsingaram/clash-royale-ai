@@ -18,6 +18,7 @@ interface DeckProps {
   swappedInCard: Card | null;
   handleDeckCardClick: (card: Card) => void;
   calculateAverageElixir: () => string;
+  highlightedCards: string[];
 }
 
 export default function Deck({
@@ -26,6 +27,7 @@ export default function Deck({
   swappedInCard,
   handleDeckCardClick,
   calculateAverageElixir,
+  highlightedCards,
 }: DeckProps) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -55,8 +57,7 @@ export default function Deck({
               onClick={() => handleDeckCardClick(card)}
               className={`group cursor-pointer relative transition-all duration-200 ${
                 swappingCardId === card.id ? 'opacity-40 scale-95' : 'hover:scale-105'
-              }`}
-            >
+              } ${highlightedCards.includes(card.name) ? 'highlighted-card' : ''}`}            >
               <div className="relative">
                 <Tilt 
                   glareEnable={false}

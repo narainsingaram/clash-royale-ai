@@ -38,6 +38,7 @@ export default function Home() {
   const [archetypeDistribution, setArchetypeDistribution] = useState<ArchetypeDistributionItem[]>([]);
   const [fetchingMetaInsights, setFetchingMetaInsights] = useState<boolean>(false);
   const [isDeckInView, setIsDeckInView] = useState(true);
+  const [highlightedCards, setHighlightedCards] = useState<string[]>([]);
 
   const deckRef = useRef<HTMLDivElement>(null);
 
@@ -59,6 +60,10 @@ export default function Home() {
       }
     };
   }, []);
+
+  const handleSynergyHover = (cardNames: string[]) => {
+    setHighlightedCards(cardNames);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -341,6 +346,7 @@ export default function Home() {
             swappedInCard={swappedInCard}
             handleDeckCardClick={handleDeckCardClick}
             calculateAverageElixir={calculateAverageElixir}
+            highlightedCards={highlightedCards}
           />
         </div>
 
@@ -364,6 +370,7 @@ export default function Home() {
             deck={deck} 
             handleTrySwap={handleTrySwap} 
             openCardModal={openCardModal} 
+            handleSynergyHover={handleSynergyHover}
           />
         }
 

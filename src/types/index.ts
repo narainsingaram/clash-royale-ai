@@ -10,7 +10,7 @@ export interface Card {
 }
 
 export interface AnalysisResult {
-  deckOverview: {
+  deckOverview?: {
     archetype: string;
     playstyle: string;
     elixirComment: string;
