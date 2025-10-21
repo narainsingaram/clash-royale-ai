@@ -30,20 +30,20 @@ export default function Deck({
   highlightedCards,
 }: DeckProps) {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+    <div className="clash-panel overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
+      <div className="px-6 py-5 border-b-2 border-clash-wood flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Your Deck</h2>
-          <p className="text-sm text-gray-500 mt-0.5">{deck.length} of 8 cards</p>
+          <h2 className="text-2xl font-semibold text-clash-gold">Your Deck</h2>
+          <p className="text-sm text-clash-wood mt-0.5">{deck.length} of 8 cards</p>
         </div>
         
         {/* Average Elixir */}
-        <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="flex items-center gap-2 px-4 py-2 bg-clash-wood bg-opacity-20 rounded-lg border border-clash-wood">
           <span className="text-lg">⚡</span>
           <div>
-            <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Avg Elixir</p>
-            <p className="text-xl font-semibold text-gray-900">{calculateAverageElixir()}</p>
+            <p className="text-xs text-clash-wood uppercase tracking-wide font-medium">Avg Elixir</p>
+            <p className="text-xl font-semibold text-clash-gold">{calculateAverageElixir()}</p>
           </div>
         </div>
       </div>
@@ -65,7 +65,7 @@ export default function Deck({
                   tiltMaxAngleY={8}
                   scale={1.02}
                 >
-                  <div className="relative rounded-lg overflow-hidden shadow-md border border-gray-200 bg-white transition-all duration-200 group-hover:shadow-lg group-hover:border-gray-300">
+                  <div className="relative rounded-lg overflow-hidden shadow-md border-2 border-clash-wood bg-gradient-to-br from-amber-50 to-yellow-100 transition-all duration-200 group-hover:shadow-lg group-hover:border-clash-gold">
                     <img 
                       src={card.iconUrls.medium} 
                       alt={card.name} 
@@ -75,12 +75,12 @@ export default function Deck({
                 </Tilt>
                 
                 {/* Hover indicator */}
-                <div className="absolute top-1 right-1 w-5 h-5 bg-gray-900 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <div className="absolute top-1 right-1 w-5 h-5 bg-clash-wood rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   <span className="text-white text-xs">↔</span>
                 </div>
               </div>
               
-              <p className="text-xs font-medium text-gray-700 mt-2 text-center leading-tight line-clamp-2">
+              <p className="text-xs font-medium text-clash-wood mt-2 text-center leading-tight line-clamp-2">
                 {card.name}
               </p>
             </div>
@@ -98,7 +98,7 @@ export default function Deck({
                   tiltMaxAngleX={8} 
                   tiltMaxAngleY={8}
                 >
-                  <div className="relative rounded-lg overflow-hidden shadow-md border border-gray-200 bg-white">
+                  <div className="relative rounded-lg overflow-hidden shadow-md border-2 border-clash-wood bg-gradient-to-br from-amber-50 to-yellow-100">
                     <img 
                       src={swappedInCard.iconUrls.medium} 
                       alt={swappedInCard.name} 
@@ -107,7 +107,7 @@ export default function Deck({
                   </div>
                 </Tilt>
               </div>
-              <p className="text-xs font-medium text-gray-700 mt-2 text-center leading-tight line-clamp-2">
+              <p className="text-xs font-medium text-clash-wood mt-2 text-center leading-tight line-clamp-2">
                 {swappedInCard.name}
               </p>
             </div>
@@ -117,18 +117,19 @@ export default function Deck({
           {[...Array(8 - deck.length)].map((_, i) => (
             <div 
               key={`empty-${i}`} 
-              className="aspect-square rounded-lg bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center transition-colors duration-200 hover:bg-gray-100 hover:border-gray-300"
+              className="aspect-square rounded-lg bg-gradient-to-br from-amber-100 to-amber-200 border-2 border-dashed border-clash-wood flex items-center justify-center transition-colors duration-200 hover:bg-amber-50 hover:border-clash-gold"
             >
-              <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-clash-wood" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
             </div>
           ))}
+
         </div>
 
         {/* Helper Text */}
         {deck.length < 8 && (
-          <div className="mt-5 flex items-center justify-center gap-2 text-sm text-gray-400">
+          <div className="mt-5 flex items-center justify-center gap-2 text-sm text-clash-wood">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>

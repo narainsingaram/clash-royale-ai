@@ -19,6 +19,7 @@ import CardList from '../components/CardList';
 import CardModal from '../components/CardModal';
 import FloatingDeck from '../components/FloatingDeck';
 import SynergyVisualizer from '../components/SynergyVisualizer';
+import DarkModeToggle from '../components/DarkModeToggle';
 
 export default function Home() {
   const [cards, setCards] = useState<Card[]>([]);
@@ -337,73 +338,86 @@ export default function Home() {
           display: block;
         }
       `}</style>
-      <div className="container mx-auto p-4 font-sans">
-        <h1 className="text-5xl text-center mb-8 text-clash-gold" style={{ textShadow: '3px 3px 0px var(--clash-wood)' }}>Clash Royale AI Deck Analyzer</h1>
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted">
+        <div className="container mx-auto px-4 py-6 font-sans">
+          {/* Header with title and dark mode toggle */}
+          <header className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+            <h1 className="text-4xl md:text-5xl text-center text-clash-gold font-bold" style={{ textShadow: '2px 2px 0px var(--clash-wood)' }}>
+              Clash Royale AI Deck Analyzer
+            </h1>
+            <div className="flex items-center gap-4">
+              <DarkModeToggle />
+            </div>
+          </header>
 
-        <div ref={deckRef}>
-          <Deck 
-            deck={deck}
-            swappingCardId={swappingCardId}
-            swappedInCard={swappedInCard}
-            handleDeckCardClick={handleDeckCardClick}
-            calculateAverageElixir={calculateAverageElixir}
-            highlightedCards={highlightedCards}
-          />
+          <main className="space-y-8">
+            <div ref={deckRef}>
+              <Deck 
+                deck={deck}
+                swappingCardId={swappingCardId}
+                swappedInCard={swappedInCard}
+                handleDeckCardClick={handleDeckCardClick}
+                calculateAverageElixir={calculateAverageElixir}
+                highlightedCards={highlightedCards}
+              />
+            </div>
+
+            <DeckActions
+              deckLength={deck.length}
+              analyzing={analyzing}
+              importingDeck={importingDeck}
+              findingSimilarDecks={findingSimilarDecks}
+              playerTag={playerTag}
+              analyzeDeck={analyzeDeck}
+              generateRandomDeck={generateRandomDeck}
+              importPlayerDeck={importPlayerDeck}
+              findSimilarDecks={findSimilarDecks}
+              setPlayerTag={setPlayerTag}
+            />
+
+            {analysis && 
+              <Analysis 
+                analysis={analysis} 
+                cards={cards} 
+                deck={deck} 
+                handleTrySwap={handleTrySwap} 
+                openCardModal={openCardModal} 
+                handleSynergyHover={handleSynergyHover}
+              />
+            }
+
+            {similarDecksAnalysis && <SimilarDecks similarDecksAnalysis={similarDecksAnalysis} />}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <ElixirCurve elixirDistribution={elixirDistribution} maxCardsAtAnyElixir={maxCardsAtAnyElixir} />
+              <SynergyVisualizer 
+                deck={deck} 
+                cards={cards} 
+                highlightedCards={highlightedCards} 
+              />
+            </div>
+
+            <MetaInsights 
+              fetchingMetaInsights={fetchingMetaInsights}
+              popularCards={popularCards}
+              popularDecks={popularDecks}
+              archetypeDistribution={archetypeDistribution}
+            />
+
+            <CardList 
+              filteredCards={filteredCards}
+              addingCard={addingCard}
+              handleCardClick={handleCardClick}
+              openCardModal={openCardModal}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+            />
+          </main>
+
+          {selectedCard && <CardModal selectedCard={selectedCard} closeCardModal={closeCardModal} />}
+
+          {!isDeckInView && <FloatingDeck deck={deck} calculateAverageElixir={calculateAverageElixir} />}
         </div>
-
-        <DeckActions
-          deckLength={deck.length}
-          analyzing={analyzing}
-          importingDeck={importingDeck}
-          findingSimilarDecks={findingSimilarDecks}
-          playerTag={playerTag}
-          analyzeDeck={analyzeDeck}
-          generateRandomDeck={generateRandomDeck}
-          importPlayerDeck={importPlayerDeck}
-          findSimilarDecks={findSimilarDecks}
-          setPlayerTag={setPlayerTag}
-        />
-
-        {analysis && 
-          <Analysis 
-            analysis={analysis} 
-            cards={cards} 
-            deck={deck} 
-            handleTrySwap={handleTrySwap} 
-            openCardModal={openCardModal} 
-            handleSynergyHover={handleSynergyHover}
-          />
-        }
-
-        {similarDecksAnalysis && <SimilarDecks similarDecksAnalysis={similarDecksAnalysis} />}
-
-        <ElixirCurve elixirDistribution={elixirDistribution} maxCardsAtAnyElixir={maxCardsAtAnyElixir} />
-
-        <SynergyVisualizer 
-          deck={deck} 
-          cards={cards} 
-          highlightedCards={highlightedCards} 
-        />
-
-        <MetaInsights 
-          fetchingMetaInsights={fetchingMetaInsights}
-          popularCards={popularCards}
-          popularDecks={popularDecks}
-          archetypeDistribution={archetypeDistribution}
-        />
-
-        <CardList 
-          filteredCards={filteredCards}
-          addingCard={addingCard}
-          handleCardClick={handleCardClick}
-          openCardModal={openCardModal}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-        />
-
-        {selectedCard && <CardModal selectedCard={selectedCard} closeCardModal={closeCardModal} />}
-
-        {!isDeckInView && <FloatingDeck deck={deck} calculateAverageElixir={calculateAverageElixir} />}
       </div>
     </>
   );
